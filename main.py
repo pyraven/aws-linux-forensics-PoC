@@ -27,35 +27,41 @@ print(f"[+] Making image of {infected_instance.id}. Standby.")
 response = ec2_client.copy_image(Name='AMI-Name', SourceImageId=infected_image,
                                  SourceRegion=instance_region)
 ami_id = response['ImageId']
+# this waiter takes a while.....wait for it
 waiter = ec2_client.get_waiter('image_available')
 waiter.wait()
 print("[+] Image creation complete.")
 
 # launch new instance and assign role
-print("Creating new instance from image.")
+print("[+] Creating new instance from image.")
 create_response = ec2_resource.create_instances(
     ImageId=ami_id, MinCount=1, MaxCount=1, InstanceType=infected_instance_type)
 build_instance = create_response[0]
 build_instance_id = build_instance.id
 build_instance.wait_until_running()
-print("Instance Created. Attaching role and running commands.")
+print("[+] Instance Created. Attaching role and running commands.")
 associate_iam_response = ec2_client.associate_iam_instance_profile(
     IamInstanceProfile={'Arn': iam_instance_profile_arn, 'Name': iam_role_name}, InstanceId=build_instance_id)
 
-# Wait for instance to be managed under SSM
-# This will allow the ssm commands to be run
-# I'm doing this because there are no waiters for SSM?
-# So I'm querying the inventory every minute and checking
-# for the new instance ID here.
+read_me = """ Wait for instance to be managed under SSM
+This will allow the ssm commands to be run
+I'm doing this because there are no waiters for SSM?
+So I'm querying the inventory every minute and checking
+for the new instance ID here. This normally takes a minute
+or two for an instance to me managed.
+Also, I'm using the Amazon AMI for this so the SSM Agent is
+installed by default so this will have to be modified
+per linux distro """
+
 ready = False
 while ready == False:
     inventory = ssm_client.get_inventory()['Entities']
     host_ids = [host['Id'] for host in inventory]
     if build_instance_id in host_ids:
         ready = True
-        print("Instance is now managed.")
+        print("[+] Instance is now managed.")
     else:
-        print("Waiting 60 seconds.")
+        print("[+] Discovering")
         time.sleep(60)
 
 # run commands to create forensics file
