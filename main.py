@@ -47,11 +47,11 @@ read_me = """ Wait for instance to be managed under SSM
 This will allow the ssm commands to be run
 I'm doing this because there are no waiters for SSM?
 So I'm querying the inventory every minute and checking
-for the new instance ID here. This normally takes a minute
-or two for an instance to me managed.
-Also, I'm using the Amazon AMI for this so the SSM Agent is
-installed by default so this will have to be modified
-per linux distro """
+for the new instance ID here. This normally takes a few
+or two for an instance to be managed (under Systems Manager) 
+after the role is attached. Also, I'm using the Amazon AMI
+for this so the SSM Agent is installed by default so this 
+will have to be installed for other distros. """
 
 ready = False
 while ready == False:
